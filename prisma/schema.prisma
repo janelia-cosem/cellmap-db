@@ -1,0 +1,65 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SampleType {
+  SCALAR
+  LABEL
+}
+
+model ViewToImage {
+  images       Images @relation(fields: [image_name, dataset_name], references: [name, dataset_name])
+  image_name   String
+  dataset_name String
+  views        Views  @relation(fields: [view_id], references: [id])
+  view_id      Int
+
+  @@id([dataset_name, image_name, view_id])
+}
+
+model Views {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String
+  created_at  DateTime @default(now()) @db.Timestamp(6)
+  position    Float[]
+  orientation Float[]
+  tags        String[]
+
+  image_names  String[]
+  dataset      Dataset       @relation(fields: [dataset_name], references: [name])
+  dataset_name String
+  ViewToImage  ViewToImage[]
+
+  @@unique([name, dataset_name])
+}
+
+model Images {
+  id           Int           @id @default(autoincrement())
+  name         String
+  description  String
+  created_at   DateTime      @default(now()) @db.Timestamp(6)
+  sample_type  SampleType
+  views        ViewToImage[]
+  dataset      Dataset       @relation(fields: [dataset_name], references: [name])
+  dataset_name String
+
+  @@unique([name, dataset_name])
+}
+
+model Dataset {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String
+  created_at  DateTime @default(now()) @db.Timestamp(6)
+  images      Images[]
+  views       Views[]
+}
