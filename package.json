@@ -10,12 +10,20 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@octokit/rest": "^19.0.5",
+    "@octokit/types": "^8.0.0",
     "@types/node": "^18.11.0",
+    "dotenv": "^16.0.3",
+    "json-schema-to-typescript": "^11.0.2",
     "prisma": "^4.4.0",
     "ts-node": "^10.9.1",
+    "tsconfig-paths": "^4.1.0",
     "typescript": "^4.8.4"
   },
   "dependencies": {
-    "@prisma/client": "^4.4.0"
+    "@prisma/client": "^4.4.0",
+    "axios": "^1.1.3",
+    "express": "^4.18.2",
+    "node-fetch": "^3.2.10"
   }
 }

@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,56 +7,151 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum SampleType {
-  SCALAR
-  LABEL
-}
-
 model ViewToImage {
-  images       Images @relation(fields: [image_name, dataset_name], references: [name, dataset_name])
-  image_name   String
-  dataset_name String
-  views        Views  @relation(fields: [view_id], references: [id])
-  view_id      Int
+  imageId   Int @map("image_id")
+  viewId      Int @map("view_id")
+  images      Image  @relation(fields: [imageId], references: [id])
+  views       View   @relation(fields: [viewId], references: [id])
 
-  @@id([dataset_name, image_name, view_id])
+  @@id([imageId, viewId])
+  @@map("view_to_image")
 }
 
-model Views {
+model Publication {
+  id       Int                    @id @default(autoincrement())
+  name     String                 
+  url      String                 @unique
+  type     PublicationType
+  datasets PublicationToDataset[]
+
+  @@map("publication")
+}
+
+model PublicationToDataset {
+  datasetName   String      @map("dataset_name")
+  publicationId Int         @map("publication_id")
+  datasets      Dataset     @relation(fields: [datasetName], references: [name])
+  publications  Publication @relation(fields: [publicationId], references: [id])
+
+  @@id([datasetName, publicationId])
+  @@map("publication_to_dataset")
+}
+
+model View {
+  id          Int           @id @default(autoincrement())
+  name        String
+  description String
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamp(6)
+  position    Float[]
+  scale       Float[]
+  orientation Float[]
+  tags        String[]
+  datasetName String        @map("dataset_name")
+  dataset     Dataset       @relation(fields: [datasetName], references: [name])
+  images ViewToImage[]
+
+  @@unique([name, datasetName])
+  @@map("view")
+}
+
+model Mesh {
   id          Int      @id @default(autoincrement())
   name        String
   description String
-  created_at  DateTime @default(now()) @db.Timestamp(6)
-  position    Float[]
-  orientation Float[]
-  tags        String[]
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  url         String
+  transform   Json
+  imageId     Int      @map("image_id") @unique
+  image       Image?    @relation(fields: [imageId], references: [id])
 
-  image_names  String[]
-  dataset      Dataset       @relation(fields: [dataset_name], references: [name])
-  dataset_name String
-  ViewToImage  ViewToImage[]
-
-  @@unique([name, dataset_name])
+  @@map("mesh")
 }
 
-model Images {
-  id           Int           @id @default(autoincrement())
-  name         String
-  description  String
-  created_at   DateTime      @default(now()) @db.Timestamp(6)
-  sample_type  SampleType
-  views        ViewToImage[]
-  dataset      Dataset       @relation(fields: [dataset_name], references: [name])
-  dataset_name String
+model Image {
+  id              Int                  @id @default(autoincrement())
+  name            String
+  description     String
+  url             String
+  format          ArrayContainerFormat
+  transform       Json
+  displaySettings Json                 @map("display_settings")
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamp(6)
+  sampleType      SampleType
+  contentType     String               @map("content_type")
+  datasetName     String               @map("dataset_name")
+  institution     String
+  dataset         Dataset              @relation(fields: [datasetName], references: [name])
+  mesh            Mesh?
+  views           ViewToImage[]
 
-  @@unique([name, dataset_name])
+  @@unique([name, datasetName])
+  @@map("image")
+}
+
+model Sample {
+  id            Int      @id @default(autoincrement())
+  name          String   @unique
+  description   String
+  protocol      String
+  contributions String
+  organism      String[]
+  type          String[]
+  subtype       String[]
+  treatment     String[]
+
+  @@map("sample")
+}
+
+model ImageAcquisition {
+  id                 Int      @id @default(autoincrement())
+  name               String
+  institution        String
+  startDate          DateTime @map("start_date")
+  gridAxes           String[] @map("grid_axes")
+  gridSpacing        Float[]  @map("grid_spacing")
+  gridSpacingUnit    String   @map("grid_spacing_unit")
+  gridDimensions     Float[]  @map("grid_dimensions")
+  gridDimensionsUnit String   @map("grid_dimensions_unit")
+  dataset            Dataset?
+
+  @@map("image_acquisition")
 }
 
 model Dataset {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  description String
-  created_at  DateTime @default(now()) @db.Timestamp(6)
-  images      Images[]
-  views       Views[]
+  id            Int                    @id @default(autoincrement())
+  name          String                 @unique
+  description   String
+  thumbnailUrl  String                 @map("thumbnail_url")
+  isPublished   Boolean                @map("is_published")
+  sample        Json
+  createdAt     DateTime               @default(now()) @map("created_at") @db.Timestamp(6)
+  acquisitionId Int                    @unique @map("acquisition_id")
+  acquisition   ImageAcquisition       @relation(fields: [acquisitionId], references: [id])
+  images        Image[]
+  publications  PublicationToDataset[]
+  views         View[]
+
+  @@map("dataset")
+}
+
+enum SampleType {
+  SCALAR
+  LABEL
+
+  @@map("sample_type")
+}
+
+enum PublicationType {
+  PAPER
+  DOI
+
+  @@map("publication_type")
+}
+
+enum ArrayContainerFormat {
+  N5
+  ZARR
+  NEUROGLANCER_PRECOMPUTED
+
+  @@map("array_container_format")
 }
